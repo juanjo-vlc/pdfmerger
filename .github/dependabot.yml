@@ -1,0 +1,21 @@
+# Python dependencies are not managed here: the hash-locked files are produced by
+# tools/lock.sh (uv, overrides, Windows/Wine targets), which Dependabot cannot reproduce.
+# Dependabot alerts still flag known vulnerabilities in them via the dependency graph.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "docker"
+    directory: "/packaging/docker"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

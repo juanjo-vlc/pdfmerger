@@ -1,11 +1,22 @@
 name: Build Windows portable
 
-# Builds run only for version tags (v1.2.3), which also publish the release.
-# workflow_dispatch allows a manual test build from the Actions tab (no release:
-# the release job only runs for tags).
+# Version tags (v1.2.3) build and publish the release. Pull requests (including
+# Dependabot's) and workflow_dispatch run the build and tests only: the release job
+# runs for tags alone.
 on:
   push:
     tags: ["v*"]
+  # Only PRs that can change the Windows build. packaging/docker is the separate
+  # Wine build, which this workflow does not use.
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "requirements/**"
+      - "packaging/**"
+      - "!packaging/docker/**"
+      - "pyproject.toml"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
 
 # Nothing by default; each job asks for the minimum it needs.
@@ -13,7 +24,8 @@ permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  # A newer push to a PR supersedes the older run; tag builds are never cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
