@@ -4,7 +4,7 @@
 #
 # Note: genuine Windows containers need a Windows host with Docker in Windows-container
 # mode; this image works anywhere Linux containers run (WSL2, Linux, macOS, CI).
-FROM tobix/pywine:3.13@sha256:7b270cd02b53bf23d50b9878c7e5e0fd6004d4e33b9c6ef05285bbcee279b7ec
+FROM tobix/pywine:3.14@sha256:adbb25c76313f5e4d29a9874ddc4ffd963504ac63e794d55ae52279d77cc2009
 
 ENV WINEDEBUG=-all \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
