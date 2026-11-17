@@ -1,0 +1,38 @@
+schema: spec-driven
+
+# Constraints that should guide every OpenSpec artifact for PDF Merger.
+context: |
+  PDF Merger is a portable desktop app (Python 3.10+, PySide6, PyMuPDF/MuPDF) whose
+  supported release target is Windows 10/11, shipped as a PyInstaller zip that needs no
+  installation. Linux/macOS are used only for development and tests.
+
+  Security model (do not weaken without saying so explicitly):
+  - Every PDF is untrusted input. Only the worker process (`--worker`) may import PyMuPDF
+    or parse PDFs; the GUI and CLI must not. On Windows the frozen worker runs at low
+    integrity inside a job object with exploit mitigations.
+  - Everything the worker sends back is validated by the caller (`core/worker_client.py`),
+    and only the caller writes output files (atomically).
+  - Untrusted text (file names, parser messages) is shown through `ui/safe_text.py`.
+  - Passwords are never accepted on the command line and never persisted to settings.
+  - Nothing is written to the Windows registry; settings stay portable.
+
+  Conventions:
+  - All user-visible strings go through `tr()` and must be added to the en/es/fr `.ts`
+    files (`pyside6-lupdate`), with Spanish and French translations provided.
+  - Release dependencies are hash-locked (`requirements/*.lock`, regenerated via
+    `tools/lock.sh`); avoid new runtime dependencies.
+  - Tests run with `QT_QPA_PLATFORM=offscreen pytest`. Fixes for fuzzing findings add the
+    input to `tools/fuzz/regressions/` plus a unit test.
+  - License is AGPL-3.0-or-later; any new dependency must be compatible.
+
+rules:
+  proposal:
+    - State the impact on the worker sandbox and untrusted-input handling, or say "none"
+    - State whether user-visible strings change (translations needed in en/es/fr)
+  design:
+    - Say which process (GUI, CLI, or worker) each new piece of code runs in
+  tasks:
+    - Include updating the .ts translation files when UI text changes
+    - Include tests (pytest; security-relevant changes also get a test in tests/test_security.py or a fuzz regression)
+  specs:
+    - Describe observable behavior; keep Windows-only behavior explicitly marked as such
