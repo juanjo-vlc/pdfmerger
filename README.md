@@ -171,9 +171,11 @@ change a `.in` file, regenerate the locks with `tools/lock.sh` (needs `uv`) and 
 diff.
 
 1. **GitHub Actions** (the only source of official releases): `.github/workflows/build.yml`
-   builds on `windows-latest`, runs the tests and two smoke tests of the frozen exe, and
-   uploads the zip and its `.sha256` file. Pushing a `v*` tag also publishes a GitHub release
-   with `SHA256SUMS` and a signed build-provenance attestation. The workflow runs with
+   runs only when you push a version tag (`git tag -a v0.2.0 -m … && git push origin v0.2.0`).
+   It builds on `windows-latest`, runs the tests, two smoke tests of the frozen exe and the
+   sandbox self-test, then publishes a GitHub release with the zip, `SHA256SUMS` and a
+   signed build-provenance attestation. For a test build without a release, start the
+   workflow by hand from the *Actions* tab (*Run workflow*). The workflow runs with
    read-only permissions; only the release job, which runs only on tags, can write.
 2. **On a Windows machine**: clone the repo to a local folder (not a `\\wsl$` path), then run
    ```powershell
