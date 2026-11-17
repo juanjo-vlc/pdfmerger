@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import itertools
 import os
+import site
 import subprocess
 import sys
 import threading
@@ -32,9 +33,19 @@ def worker_command(selftest: bool = False) -> list[str]:
     if getattr(sys, "frozen", False):
         return [sys.executable, *extra]
     src = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    code = (f"import sys; sys.path.insert(0, {src!r}); "
+    exe = sys.executable
+    sitedirs: list[str] = []
+    if sys.platform == "win32" and sys.prefix != sys.base_prefix:
+        # A venv's python.exe on Windows is only a launcher that starts the base
+        # interpreter as a child process, which the sandbox's job object forbids (the
+        # worker would die at once). Start the base interpreter directly and hand it the
+        # venv's site-packages instead.
+        exe = getattr(sys, "_base_executable", None) or exe
+        sitedirs = [p for p in site.getsitepackages() if p.startswith(sys.prefix)]
+    code = (f"import site, sys; [site.addsitedir(p) for p in {sitedirs!r}]; "
+            f"sys.path.insert(0, {src!r}); "
             "from pdfmerger.app import main; sys.exit(main())")
-    return [sys.executable, "-c", code, *extra]
+    return [exe, "-c", code, *extra]
 
 
 def _sandbox_disabled() -> bool:
