@@ -1,0 +1,12 @@
+atheris==3.1.0 \
+    --hash=sha256:315a0b5c819852b1ffe1ca72efc389c7724881f2c33e4aacb8c6bcec49bd5011 \
+    --hash=sha256:ec5e11f21a4c197fe91f7aea2b2de88e623c73a21fc07b105ac6329a1588457b \
+    --hash=sha256:f8a9f51ce8369026e8eb7b7174835e8c4c85a1a6db5d9add36c15100779d2a39
+    # via -r tools/fuzz/requirements.in
+pymupdf==2.1 \
+    --hash=sha256:1bb2284bde6067f05f83961ea678480060870dc966ad520bcf97da0b0eccf40c \
+    --hash=sha256:5a1a1fee36d5598013614e06eef25aaa68819d828f5401170dbcaf6f2714d1dd \
+    --hash=sha256:9ac95f98016e83eafb8f1d786396f9c60e400d559590596e5b2df9eb6384948b \
+    --hash=sha256:a9efa2e9e5f469d3b5749199329739cfef1ff1d1846538ced4885c544eecbcd9 \
+    --hash=sha256:e1122bbc3a1212396f0d70d19f78e084991b59ebdfc9d846c28ca8b509de01ad
+    # via -r tools/fuzz/requirements.in

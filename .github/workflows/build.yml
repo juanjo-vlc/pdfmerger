@@ -1,0 +1,105 @@
+name: Build Windows portable
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+# Nothing by default; each job asks for the minimum it needs.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No pip cache on purpose: this job produces release artifacts (cache poisoning).
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Build (hash-locked deps, translations, tests, PyInstaller, zip)
+        shell: pwsh
+        run: ./packaging/build.ps1
+
+      - name: Smoke test - GUI starts
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\PDFMerger\PDFMerger.exe -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { throw "PDFMerger.exe exited early with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id
+
+      - name: Smoke test - headless export
+        shell: pwsh
+        run: |
+          .venv-win\Scripts\python.exe -c "import pymupdf; d=pymupdf.open(); [d.new_page().insert_text((72,72), f'P{i}') for i in range(3)]; d.save('smoke-in.pdf')"
+          $p = Start-Process dist\PDFMerger\PDFMerger.exe -Wait -PassThru -ArgumentList @("--export","smoke-out.pdf","--preset","screen","--sanitize","--log","smoke.log","smoke-in.pdf")
+          Get-Content smoke.log
+          if ($p.ExitCode -ne 0) { throw "headless export failed with exit code $($p.ExitCode)" }
+          .venv-win\Scripts\python.exe -c "import pymupdf; d=pymupdf.open('smoke-out.pdf'); assert [p.get_text().strip() for p in d] == ['P0','P1','P2']"
+
+      - name: Sandbox self-test (low integrity, no writes, no child processes, limits)
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\PDFMerger\PDFMerger.exe -Wait -PassThru -ArgumentList @("--sandbox-selftest","smoke-in.pdf","--log","selftest.log")
+          Get-Content selftest.log
+          if ($p.ExitCode -ne 0) { throw "sandbox self-test failed" }
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: PDFMerger-win64
+          path: |
+            dist/PDFMerger-*-win64.zip
+            dist/PDFMerger-*-win64.zip.sha256
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # create the GitHub release
+      id-token: write       # sign the provenance attestation
+      attestations: write   # store the attestation
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: PDFMerger-win64
+          path: dist
+
+      - name: Check version and write SHA256SUMS
+        working-directory: dist
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          zip="PDFMerger-${TAG#v}-win64.zip"
+          [[ -f "$zip" ]] || { echo "::error::tag $TAG does not match the built version"; ls; exit 1; }
+          sha256sum -c "$zip.sha256"
+          sha256sum PDFMerger-*-win64.zip > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/PDFMerger-*-win64.zip
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --verify-tag --title "PDF Merger ${TAG#v}" \
+            --notes "Portable build for Windows 10/11. Verify the download with SHA256SUMS or \`gh attestation verify <zip> --repo $GH_REPO\`." \
+            dist/PDFMerger-*-win64.zip dist/SHA256SUMS

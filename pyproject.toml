@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdfmerger"
+version = "0.1.0"
+description = "Portable desktop tool to merge, reorder, rotate and compress PDF files"
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = ">=3.10"
+dependencies = [
+    "PySide6-Essentials>=6.7",
+    "PyMuPDF>=1.24.10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0.3", "pytest-qt>=4.4", "pyinstaller>=6.6"]
+
+[project.gui-scripts]
+pdfmerger = "pdfmerger.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pdfmerger = ["i18n/*.qm", "i18n/*.ts", "resources/icons/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+qt_api = "pyside6"

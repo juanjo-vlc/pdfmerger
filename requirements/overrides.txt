@@ -1,0 +1,11 @@
+# PyMuPDF 2.x hard-depends on its AI layout extras, which this application never imports.
+# The never-true markers drop them from the lock; installs use --no-deps so pip does not
+# try to fetch them anyway.
+pymupdf4llm ; sys_platform == "never"
+pymupdf-layout ; sys_platform == "never"
+onnxruntime ; sys_platform == "never"
+numpy ; sys_platform == "never"
+networkx ; sys_platform == "never"
+pyyaml ; sys_platform == "never"
+psutil ; sys_platform == "never"
+tabulate ; sys_platform == "never"
