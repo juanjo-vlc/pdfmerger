@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import itertools
 import os
-import site
 import subprocess
 import sys
 import threading
@@ -33,19 +32,9 @@ def worker_command(selftest: bool = False) -> list[str]:
     if getattr(sys, "frozen", False):
         return [sys.executable, *extra]
     src = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    exe = sys.executable
-    sitedirs: list[str] = []
-    if sys.platform == "win32" and sys.prefix != sys.base_prefix:
-        # A venv's python.exe on Windows is only a launcher that starts the base
-        # interpreter as a child process, which the sandbox's job object forbids (the
-        # worker would die at once). Start the base interpreter directly and hand it the
-        # venv's site-packages instead.
-        exe = getattr(sys, "_base_executable", None) or exe
-        sitedirs = [p for p in site.getsitepackages() if p.startswith(sys.prefix)]
-    code = (f"import site, sys; [site.addsitedir(p) for p in {sitedirs!r}]; "
-            f"sys.path.insert(0, {src!r}); "
+    code = (f"import sys; sys.path.insert(0, {src!r}); "
             "from pdfmerger.app import main; sys.exit(main())")
-    return [exe, "-c", code, *extra]
+    return [sys.executable, "-c", code, *extra]
 
 
 def _sandbox_disabled() -> bool:
@@ -54,6 +43,18 @@ def _sandbox_disabled() -> bool:
 
 def launch_worker(memory_limit: int, selftest: bool = False):
     argv = worker_command(selftest)
+    if sys.platform == "win32" and not getattr(sys, "frozen", False):
+        # Running from source (development, tests): the sandbox is built for the frozen
+        # PDFMerger.exe. A Python interpreter does not start inside it (a venv's python.exe
+        # is a launcher that needs a child process, and the base interpreter dies with
+        # STATUS_DLL_INIT_FAILED), so the worker runs as a plain separate process. CI
+        # checks the real sandbox with `PDFMerger.exe --sandbox-selftest`.
+        proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, close_fds=True,
+                                creationflags=subprocess.CREATE_NO_WINDOW)
+        proc.level = "unsandboxed"
+        proc.mitigations = []
+        return proc
     if sys.platform == "win32":
         from . import sandbox_win
         # Troubleshooting only: PDFMERGER_SANDBOX_MITIGATIONS=none|name,name,...

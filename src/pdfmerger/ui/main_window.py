@@ -662,7 +662,8 @@ class MainWindow(QMainWindow):
             pymupdf_version, level = "?", "unavailable"
         levels = {"low-integrity": self.tr("low-integrity process with resource limits"),
                   "job-only": self.tr("separate process with resource limits"),
-                  "rlimit-only": self.tr("separate process with memory limit")}
+                  "rlimit-only": self.tr("separate process with memory limit"),
+                  "unsandboxed": self.tr("separate process, not sandboxed (running from source)")}
         QMessageBox.about(
             self, self.tr("About {0}").format(APP_NAME),
             self.tr("<h3>{0} {1}</h3><p>Merge, reorder, rotate and compress PDF files.</p>"

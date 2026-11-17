@@ -107,7 +107,8 @@ messages.
   The exit code is 0 if every check passed. If a corporate security policy prevents
   low-integrity processes, the worker falls back to a normal-integrity process with the
   other protections, and *Help ▸ About* says so. `PDFMERGER_NO_SANDBOX=1` forces that
-  fallback, for troubleshooting only.
+  fallback, for troubleshooting only. When run from source on Windows (development,
+  tests), the worker is a plain separate process: only `PDFMerger.exe` is sandboxed.
 - Files over 2 GB, files with more than 10,000 pages, pages larger than 200 inches, and
   images over 400 megapixels are refused.
 - Run the portable folder from a location only you can write to, for example under your user
