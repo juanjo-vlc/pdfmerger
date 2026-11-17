@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdfmerger"
-version = "0.1.0"
+version = "0.1.1"
 description = "Portable desktop tool to merge, reorder, rotate and compress PDF files"
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }

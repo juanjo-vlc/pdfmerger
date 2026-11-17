@@ -6,6 +6,34 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
+class ModalDialogOpened(AssertionError):
+    pass
+
+
+@pytest.fixture(autouse=True)
+def no_modal_dialogs(monkeypatch):
+    """A modal dialog nobody can click blocks the test run forever (offscreen in CI).
+    Fail the test with the dialog's text instead; tests that expect a dialog patch it."""
+    from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+
+    def fail_exec(self, *a, **kw):
+        text = self.text() if isinstance(self, QMessageBox) else ""
+        raise ModalDialogOpened(f"modal {type(self).__name__} opened: "
+                                f"{self.windowTitle()!r} {text!r}")
+
+    def fail_static(name):
+        def f(*a, **kw):
+            raise ModalDialogOpened(f"QMessageBox/QFileDialog.{name} opened: {a[1:3]!r}")
+        return staticmethod(f)
+
+    for cls in (QDialog, QMessageBox, QFileDialog):
+        monkeypatch.setattr(cls, "exec", fail_exec)
+    for name in ("question", "warning", "information", "critical", "about"):
+        monkeypatch.setattr(QMessageBox, name, fail_static(name))
+    for name in ("getOpenFileName", "getOpenFileNames", "getSaveFileName", "getExistingDirectory"):
+        monkeypatch.setattr(QFileDialog, name, fail_static(name))
+
+
 def make_pdf(path, labels, image=False, password=None, rotate=0):
     doc = pymupdf.open()
     for label in labels:
